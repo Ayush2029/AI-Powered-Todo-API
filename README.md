@@ -88,7 +88,7 @@ todo-api/
 
 Your API is live at `https://ai-todo-api.onrender.com`.
 
-### Keeping the service alive (free tier workaround)
+### Keeping the service alive
 
 Render's free tier spins down after 15 minutes of inactivity. A cron job pings the health endpoint every 10 minutes to keep it warm.
 
@@ -127,52 +127,6 @@ Render's free tier spins down after 15 minutes of inactivity. A cron job pings t
 | `tag` | any string | — |
 | `page` | integer ≥ 1 | `1` |
 | `page_size` | 1–100 | `20` |
-
-### AI Endpoints
-
-#### `POST /ai/breakdown` — Break a goal into tasks
-
-```json
-{
-  "goal": "Launch my portfolio website by end of month",
-  "max_tasks": 5
-}
-```
-
-Response:
-```json
-{
-  "goal": "Launch my portfolio website by end of month",
-  "tasks": [
-    {
-      "title": "Design homepage layout",
-      "description": "Sketch wireframes and choose a color scheme.",
-      "priority": "high",
-      "tags": ["design", "portfolio"]
-    }
-  ]
-}
-```
-
-#### `POST /ai/suggest-priority` — Get priority recommendation
-
-```json
-{
-  "title": "Submit tax return",
-  "description": "File federal and state taxes online",
-  "due_date": "2025-04-15"
-}
-```
-
-Response:
-```json
-{
-  "suggested_priority": "high",
-  "reasoning": "Tax returns have a firm government deadline with financial penalties for missing it."
-}
-```
-
----
 
 ## Environment Variables
 
