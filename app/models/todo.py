@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, Text
-from sqlalchemy.dialects.sqlite import JSON
+from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime, timezone
 import enum
 
@@ -23,7 +23,11 @@ class Todo(Base):
     title = Column(String(255), nullable=False, index=True)
     description = Column(Text, nullable=True)
     due_date = Column(DateTime, nullable=True)
-    priority = Column(Enum(Priority), default=Priority.medium, nullable=False)
+    priority = Column(
+        Enum("low", "medium", "high", name="priority", create_type=False),
+        default="medium",
+        nullable=False,
+    )
     is_completed = Column(Boolean, default=False, nullable=False)
     tags = Column(JSON, default=list, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
