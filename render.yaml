@@ -10,10 +10,10 @@ services:
         fromDatabase:
           name: todos-db
           property: connectionString
-      - key: GEMINI_API_KEY
-        sync: false   # Set manually in the Render dashboard — free key from aistudio.google.com
-      - key: GEMINI_MODEL
-        value: gemini-2.5-flash-preview-04-17
+      - key: GROQ_API_KEY
+        sync: false   # Set manually in Render dashboard — free key from console.groq.com
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
     healthCheckPath: /health
     autoDeploy: true
 
