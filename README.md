@@ -1,6 +1,6 @@
 # AI-Powered Todo API
 
-A production-grade REST API for todo management built with **FastAPI** and **PostgreSQL**, deployed on **Render**, with AI-powered features using **Groq (Llama 3.3 70B)** — completely free, no credit card needed.
+A production-grade REST API for todo management built with **FastAPI** and **PostgreSQL**, deployed on **Render**, with AI-powered features using **Groq. **
 
 > Storage is 100% cloud-managed. No local files, no SQLite. The app refuses to start without a valid `DATABASE_URL`, preventing silent data loss on ephemeral containers.
 
