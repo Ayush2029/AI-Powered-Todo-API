@@ -18,7 +18,7 @@ app = FastAPI(
     title="AI-Powered Todo API",
     description=(
         "A clean REST API for todo management with AI superpowers: "
-        "task breakdown and priority suggestions powered by Groq (Llama 3.3 70B)."
+        "task breakdown and priority suggestions "
     ),
     version="1.0.0",
     lifespan=lifespan,
