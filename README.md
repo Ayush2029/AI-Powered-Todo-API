@@ -90,7 +90,7 @@ Your API is live at `https://ai-todo-api.onrender.com`.
 
 ### Keeping the service alive
 
-Render's free tier spins down after 15 minutes of inactivity. A cron job pings the health endpoint every 10 minutes to keep it warm.
+Render's free tier spins down after 15 minutes of inactivity. A cron job pings the health endpoint every 5 minutes to keep it warm.
 
 **Setup using [cron-job.org](https://cron-job.org) (free):**
 
