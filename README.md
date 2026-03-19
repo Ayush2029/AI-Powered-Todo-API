@@ -30,7 +30,7 @@ A production-grade REST API for todo management built with **FastAPI** and **Pos
 
 **Getting a free Groq API key:**
 1. Go to [console.groq.com](https://console.groq.com)
-2. Sign up with GitHub or email (no credit card)
+2. Sign up with GitHub or email 
 3. Click **API Keys** → **Create API Key**
 4. Done — free tier gives 1000+ requests/day
 
@@ -94,7 +94,7 @@ Your API is live at `https://ai-todo-api.onrender.com` — visit `https://ai-tod
 
 Render's free tier spins down after 15 minutes of inactivity. A cron job pings the health endpoint every 5 minutes to keep it warm.
 
-**Setup using [cron-job.org](https://cron-job.org) (free):**
+**Setup using [cron-job.org](https://cron-job.org) :**
 
 1. Go to [cron-job.org](https://cron-job.org) → sign up free
 2. Click **Create Cronjob**
