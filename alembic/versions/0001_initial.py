@@ -15,6 +15,9 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Use raw SQL so we can use IF NOT EXISTS for the enum
+    op.execute("CREATE TYPE IF NOT EXISTS priority AS ENUM ('low', 'medium', 'high')")
+
     op.create_table(
         "todos",
         sa.Column("id", sa.Integer(), primary_key=True, index=True),
@@ -23,7 +26,7 @@ def upgrade() -> None:
         sa.Column("due_date", sa.DateTime(), nullable=True),
         sa.Column(
             "priority",
-            sa.Enum("low", "medium", "high", name="priority"),
+            sa.Enum("low", "medium", "high", name="priority", create_type=False),
             nullable=False,
             server_default="medium",
         ),
@@ -35,7 +38,6 @@ def upgrade() -> None:
             sa.DateTime(),
             nullable=False,
             server_default=sa.func.now(),
-            onupdate=sa.func.now(),
         ),
     )
 
