@@ -99,8 +99,8 @@ Render's free tier spins down after 15 minutes of inactivity. A cron job pings t
 1. Go to [cron-job.org](https://cron-job.org) → sign up free
 2. Click **Create Cronjob**
 3. Set:
-   - **URL:** `https://ai-todo-api.onrender.com/health`
-   - **Schedule:** Every 10 minutes
+   - **URL:** `https://ai-todo-api.onrender.com`
+   - **Schedule:** Every 5 minutes
 4. Click **Save**
 
 ---
