@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from app.core.database import create_tables
 from app.routes import todos, ai
 from app.core.errors import register_exception_handlers
+import app.models.todo  # noqa: F401 — registers model with Base
 
 
 @asynccontextmanager
@@ -17,7 +18,7 @@ app = FastAPI(
     title="AI-Powered Todo API",
     description=(
         "A clean REST API for todo management with AI superpowers: "
-        "task breakdown, smart descriptions, priority suggestions, and productivity insights."
+        "task breakdown and priority suggestions powered by Groq (Llama 3.3 70B)."
     ),
     version="1.0.0",
     lifespan=lifespan,
