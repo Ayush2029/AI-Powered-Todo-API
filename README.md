@@ -2,6 +2,7 @@
 
 A production-grade REST API for todo management built with **FastAPI** and **PostgreSQL**, deployed on **Render**, with AI-powered features using **Groq.**
 
+
 ---
 
 ## Features
@@ -84,7 +85,7 @@ todo-api/
    - `GROQ_MODEL` = `llama-3.3-70b-versatile`
 8. Tables are created automatically on first startup — no manual migration needed.
 
-Your API is live at `https://ai-todo-api.onrender.com`.
+Your API is live at `https://ai-todo-api.onrender.com` — visit `https://ai-todo-api.onrender.com/docs` for the interactive Swagger UI where you can test all endpoints directly in the browser.
 
 ### Keeping the service alive
 
