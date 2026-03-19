@@ -1,6 +1,6 @@
 # AI-Powered Todo API
 
-A production-grade REST API for todo management built with **FastAPI** and **PostgreSQL**, deployed on **Render**, with **Google Gemini** AI features — completely free, no credit card needed.
+A production-grade REST API for todo management built with **FastAPI** and **PostgreSQL**, deployed on **Render**, with AI-powered features using **Groq (Llama 3.3 70B)** — completely free, no credit card needed.
 
 > Storage is 100% cloud-managed. No local files, no SQLite. The app refuses to start without a valid `DATABASE_URL`, preventing silent data loss on ephemeral containers.
 
@@ -19,18 +19,18 @@ A production-grade REST API for todo management built with **FastAPI** and **Pos
 - Pydantic v2 validation — no raw stack traces in responses
 - 25+ pytest tests
 
-### AI Upgrades (Google Gemini — FREE tier)
+### AI Upgrades (Groq — FREE tier)
 
 | Endpoint | What it does |
 |---|---|
 | `POST /ai/breakdown` | Break a high-level goal into actionable todos with priorities and tags |
 | `POST /ai/suggest-priority` | Analyze a task and suggest the best priority with reasoning |
 
-**Getting a free Gemini API key:**
-1. Go to [aistudio.google.com](https://aistudio.google.com)
-2. Sign in with a Google account
-3. Click **Get API key** → **Create API key**
-4. Done — no credit card, no billing setup
+**Getting a free Groq API key:**
+1. Go to [console.groq.com](https://console.groq.com)
+2. Sign up with GitHub or email (no credit card)
+3. Click **API Keys** → **Create API Key**
+4. Done — free tier gives 1000+ requests/day
 
 ---
 
@@ -39,10 +39,10 @@ A production-grade REST API for todo management built with **FastAPI** and **Pos
 ```
 todo-api/
 ├── app/
-│   ├── main.py                    # App factory, middleware, routers, lifespan
+│   ├── main.py                    # App factory, middleware, routers, lifespan + create_tables
 │   ├── core/
-│   │   ├── config.py              # Pydantic settings — DATABASE_URL + GEMINI_API_KEY required
-│   │   ├── database.py            # SQLAlchemy engine (PostgreSQL, pool_pre_ping)
+│   │   ├── config.py              # Pydantic settings — DATABASE_URL + GROQ_API_KEY required
+│   │   ├── database.py            # SQLAlchemy engine, safe enum + table creation
 │   │   └── errors.py              # Custom exceptions + global handlers (no stack traces)
 │   ├── models/
 │   │   └── todo.py                # SQLAlchemy ORM model
@@ -54,16 +54,18 @@ todo-api/
 │   │   └── ai.py                  # AI: POST /ai/breakdown, POST /ai/suggest-priority
 │   └── services/
 │       ├── todo_service.py        # Business logic — all DB queries
-│       └── ai_service.py          # Google Gemini SDK calls
+│       └── ai_service.py          # Groq SDK calls — breakdown + priority
 ├── tests/
 │   └── test_todos.py              # 25+ tests, SQLite in-memory override
 ├── alembic/
 │   ├── env.py                     # Reads DATABASE_URL from settings
 │   └── versions/
 │       └── 0001_initial.py        # Creates todos table + priority enum
-├── render.yaml                    # Render Blueprint: web service + postgres + migrations
+├── render.yaml                    # Render: web service + postgres
 ├── requirements.txt
 ├── .env.example
+├── .python-version
+├── runtime.txt
 └── README.md
 ```
 
@@ -74,7 +76,7 @@ todo-api/
 ### Prerequisites
 - Python 3.11+
 - PostgreSQL via Docker (see below)
-- A free Gemini API key from [aistudio.google.com](https://aistudio.google.com)
+- A free Groq API key from [console.groq.com](https://console.groq.com)
 
 ### 1. Clone and install
 
@@ -102,29 +104,25 @@ docker run -d \
 
 ```bash
 cp .env.example .env
-# Set GEMINI_API_KEY to your free key from aistudio.google.com
+# Set GROQ_API_KEY to your free key from console.groq.com
 ```
 
-### 4. Run migrations
-
-```bash
-alembic upgrade head
-```
-
-### 5. Start the server
+### 4. Start the server
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-API: **http://localhost:8000**  
+Tables are created automatically on startup — no migration step needed.
+
+API: **http://localhost:8000**
 Swagger docs: **http://localhost:8000/docs**
 
 ---
 
 ## Running Tests
 
-Tests override env vars with SQLite in-memory before any app module loads — no PostgreSQL or Gemini key needed.
+Tests override env vars with SQLite in-memory before any app module loads — no PostgreSQL or Groq key needed.
 
 ```bash
 pytest tests/ -v
@@ -205,19 +203,41 @@ Response:
 
 ## Deploying to Render
 
-### One-click via Blueprint
+### Steps
 
 1. Push your code to GitHub.
-2. Go to [render.com](https://render.com) → **New** → **Blueprint**.
-3. Connect your GitHub repo — Render auto-detects `render.yaml` and creates:
-   - A **web service** running FastAPI (2 uvicorn workers)
-   - A **free PostgreSQL database** (`todos-db`)
-   - `DATABASE_URL` wired automatically from DB → service
-4. In the Render dashboard → your web service → **Environment** → add:
-   - `GEMINI_API_KEY` = your free key from aistudio.google.com
-5. `preDeployCommand: alembic upgrade head` runs automatically — no manual migration step.
+2. Go to [render.com](https://render.com) → **New** → **Web Service**
+3. Connect your GitHub repo
+4. Set:
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Instance Type:** Free
+5. Separately create **New** → **PostgreSQL** → Free plan
+6. Copy the **Internal Database URL** from the PostgreSQL service
+7. In your web service → **Environment** tab → add:
+   - `DATABASE_URL` = Internal Database URL from step 6
+   - `GROQ_API_KEY` = your free key from console.groq.com
+   - `GROQ_MODEL` = `llama-3.3-70b-versatile`
+8. Tables are created automatically on first startup — no manual migration needed.
 
 Your API is live at `https://ai-todo-api.onrender.com`.
+
+### Keeping the service alive (free tier workaround)
+
+Render's free tier spins down after 15 minutes of inactivity — the first request after that takes ~30 seconds to wake up. To prevent this, a cron job pings the health endpoint every 10 minutes.
+
+**Setup using [cron-job.org](https://cron-job.org) (free, no account needed):**
+
+1. Go to [cron-job.org](https://cron-job.org) → sign up free
+2. Click **Create Cronjob**
+3. Set:
+   - **URL:** `https://ai-todo-api.onrender.com/health`
+   - **Schedule:** Every 10 minutes
+4. Click **Save**
+
+The `/health` endpoint returns `{"status": "healthy"}` and keeps the service warm with zero overhead.
+
+---
 
 ### Why no SQLite
 
@@ -227,11 +247,21 @@ Render containers are ephemeral — they reset on every deploy. SQLite files on 
 
 ## Architecture Notes
 
-- **Google Gemini (free tier)** via `google-generativeai` SDK. Model: `gemini-2.5-flash-preview-04-17`. System prompt prepended to user message (Gemini's standard pattern). Markdown fence stripping handles Gemini's occasional formatting of JSON responses.
+- **Groq (free tier)** via `groq` SDK. Model: `llama-3.3-70b-versatile`. Uses standard system/user message roles. Markdown fence stripping handles occasional JSON formatting in responses.
+- **Auto table creation** — `create_tables()` runs on every startup. Checks `pg_type` before creating the `priority` enum, then calls `Base.metadata.create_all()` which skips existing tables. No Alembic needed at runtime.
 - **pool_pre_ping=True** — drops stale DB connections before use, important when app and DB are separate networked services on Render.
-- **preDeployCommand** — Alembic migrations run before the new app version takes traffic.
 - **Error isolation** — `NotFoundError` and `AIServiceError` are global handlers; no tracebacks or SQLAlchemy internals reach clients.
 - **Partial updates** — `PUT /todos/{id}` only updates fields present in the request body.
+
+---
+
+## Environment Variables
+
+| Key | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | PostgreSQL connection string — injected by Render automatically |
+| `GROQ_API_KEY` | Yes | Free key from [console.groq.com](https://console.groq.com) |
+| `GROQ_MODEL` | No | Defaults to `llama-3.3-70b-versatile` |
 
 ---
 
