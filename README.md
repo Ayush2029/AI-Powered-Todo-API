@@ -2,6 +2,8 @@
 
 A production-grade REST API for todo management built with **FastAPI** and **PostgreSQL**, deployed on **Render**, with AI-powered features using **Groq.**
 
+**Live API:** https://todo-api-a0hw.onrender.com/
+**Swagger Docs:** https://todo-api-a0hw.onrender.com/docs
 
 ---
 
