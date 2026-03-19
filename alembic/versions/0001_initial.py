@@ -7,7 +7,6 @@ Create Date: 2025-03-19
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSON
-from sqlalchemy.exc import ProgrammingError
 
 revision = "0001_initial"
 down_revision = None
@@ -16,15 +15,22 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create priority enum safely — skip if it already exists
     conn = op.get_bind()
-    try:
-        conn.execute(sa.text("CREATE TYPE priority AS ENUM ('low', 'medium', 'high')"))
-    except ProgrammingError:
-        conn.execute(sa.text("ROLLBACK"))
 
-    # Create todos table — skip if it already exists
-    try:
+    # Check if priority enum exists before creating
+    result = conn.execute(sa.text(
+        "SELECT 1 FROM pg_type WHERE typname = 'priority'"
+    ))
+    if not result.fetchone():
+        conn.execute(sa.text(
+            "CREATE TYPE priority AS ENUM ('low', 'medium', 'high')"
+        ))
+
+    # Check if todos table exists before creating
+    result = conn.execute(sa.text(
+        "SELECT 1 FROM information_schema.tables WHERE table_name = 'todos'"
+    ))
+    if not result.fetchone():
         op.create_table(
             "todos",
             sa.Column("id", sa.Integer(), primary_key=True, index=True),
@@ -42,8 +48,6 @@ def upgrade() -> None:
             sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
             sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
         )
-    except ProgrammingError:
-        pass
 
 
 def downgrade() -> None:
