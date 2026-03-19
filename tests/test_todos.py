@@ -11,7 +11,7 @@ import os
 
 # Patch env vars before any app module is imported.
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
-os.environ.setdefault("GEMINI_API_KEY", "test-gemini-key-not-used")
+os.environ.setdefault("GROQ_API_KEY", "test-groq-key-not-used")
 
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine  # noqa: E402
