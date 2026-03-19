@@ -8,7 +8,7 @@ A production-grade REST API for todo management built with **FastAPI** and **Pos
 
 ## Features
 
-### Core 
+### Core
 - Full CRUD with all required fields (id, title, description, due_date, priority, is_completed, tags, created_at, updated_at)
 - Filter by status (`all` / `completed` / `pending`) and priority
 - Full-text search across title and description (`?search=meeting`)
@@ -19,7 +19,7 @@ A production-grade REST API for todo management built with **FastAPI** and **Pos
 - Pydantic v2 validation — no raw stack traces in responses
 - 25+ pytest tests
 
-### AI Upgrades 
+### AI Upgrades
 
 | Endpoint | What it does |
 |---|---|
@@ -57,10 +57,6 @@ todo-api/
 │       └── ai_service.py          # Groq SDK calls — breakdown + priority
 ├── tests/
 │   └── test_todos.py              # 25+ tests, SQLite in-memory override
-├── alembic/
-│   ├── env.py                     # Reads DATABASE_URL from settings
-│   └── versions/
-│       └── 0001_initial.py        # Creates todos table + priority enum
 ├── render.yaml                    # Render: web service + postgres
 ├── requirements.txt
 ├── .env.example
@@ -71,62 +67,39 @@ todo-api/
 
 ---
 
-## Local Development
+## Deploying to Render
 
-### Prerequisites
-- Python 3.11+
-- PostgreSQL via Docker (see below)
-- A free Groq API key from [console.groq.com](https://console.groq.com)
+### Steps
 
-### 1. Clone and install
+1. Push your code to GitHub.
+2. Go to [render.com](https://render.com) → **New** → **Web Service**
+3. Connect your GitHub repo
+4. Set:
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Instance Type:** Free
+5. Separately create **New** → **PostgreSQL** → Free plan
+6. Copy the **Internal Database URL** from the PostgreSQL service
+7. In your web service → **Environment** tab → add:
+   - `DATABASE_URL` = Internal Database URL from step 6
+   - `GROQ_API_KEY` = your free key from console.groq.com
+   - `GROQ_MODEL` = `llama-3.3-70b-versatile`
+8. Tables are created automatically on first startup — no manual migration needed.
 
-```bash
-git clone <your-repo-url>
-cd todo-api
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
+Your API is live at `https://ai-todo-api.onrender.com`.
 
-### 2. Start a local PostgreSQL instance (Docker)
+### Keeping the service alive (free tier workaround)
 
-```bash
-docker run -d \
-  --name todos-postgres \
-  -p 5432:5432 \
-  -e POSTGRES_DB=todos_db \
-  -e POSTGRES_USER=todos_user \
-  -e POSTGRES_PASSWORD=secret \
-  postgres:16
-```
+Render's free tier spins down after 15 minutes of inactivity. A cron job pings the health endpoint every 10 minutes to keep it warm.
 
-### 3. Configure environment
+**Setup using [cron-job.org](https://cron-job.org) (free):**
 
-```bash
-cp .env.example .env
-# Set GROQ_API_KEY to your free key from console.groq.com
-```
-
-### 4. Start the server
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Tables are created automatically on startup — no migration step needed.
-
-API: **http://localhost:8000**
-Swagger docs: **http://localhost:8000/docs**
-
----
-
-## Running Tests
-
-Tests override env vars with SQLite in-memory before any app module loads — no PostgreSQL or Groq key needed.
-
-```bash
-pytest tests/ -v
-```
+1. Go to [cron-job.org](https://cron-job.org) → sign up free
+2. Click **Create Cronjob**
+3. Set:
+   - **URL:** `https://ai-todo-api.onrender.com/health`
+   - **Schedule:** Every 10 minutes
+4. Click **Save**
 
 ---
 
@@ -198,60 +171,6 @@ Response:
   "reasoning": "Tax returns have a firm government deadline with financial penalties for missing it."
 }
 ```
-
----
-
-## Deploying to Render
-
-### Steps
-
-1. Push your code to GitHub.
-2. Go to [render.com](https://render.com) → **New** → **Web Service**
-3. Connect your GitHub repo
-4. Set:
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - **Instance Type:** Free
-5. Separately create **New** → **PostgreSQL** → Free plan
-6. Copy the **Internal Database URL** from the PostgreSQL service
-7. In your web service → **Environment** tab → add:
-   - `DATABASE_URL` = Internal Database URL from step 6
-   - `GROQ_API_KEY` = your free key from console.groq.com
-   - `GROQ_MODEL` = `llama-3.3-70b-versatile`
-8. Tables are created automatically on first startup — no manual migration needed.
-
-Your API is live at `https://ai-todo-api.onrender.com`.
-
-### Keeping the service alive (free tier workaround)
-
-Render's free tier spins down after 15 minutes of inactivity — the first request after that takes ~30 seconds to wake up. To prevent this, a cron job pings the health endpoint every 10 minutes.
-
-**Setup using [cron-job.org](https://cron-job.org) (free, no account needed):**
-
-1. Go to [cron-job.org](https://cron-job.org) → sign up free
-2. Click **Create Cronjob**
-3. Set:
-   - **URL:** `https://ai-todo-api.onrender.com/health`
-   - **Schedule:** Every 10 minutes
-4. Click **Save**
-
-The `/health` endpoint returns `{"status": "healthy"}` and keeps the service warm with zero overhead.
-
----
-
-### Why no SQLite
-
-Render containers are ephemeral — they reset on every deploy. SQLite files on the local filesystem are silently wiped. `DATABASE_URL` has no default in `config.py`, so the app fails loudly at startup if it's missing rather than creating a local file.
-
----
-
-## Architecture Notes
-
-- **Groq (free tier)** via `groq` SDK. Model: `llama-3.3-70b-versatile`. Uses standard system/user message roles. Markdown fence stripping handles occasional JSON formatting in responses.
-- **Auto table creation** — `create_tables()` runs on every startup. Checks `pg_type` before creating the `priority` enum, then calls `Base.metadata.create_all()` which skips existing tables. No Alembic needed at runtime.
-- **pool_pre_ping=True** — drops stale DB connections before use, important when app and DB are separate networked services on Render.
-- **Error isolation** — `NotFoundError` and `AIServiceError` are global handlers; no tracebacks or SQLAlchemy internals reach clients.
-- **Partial updates** — `PUT /todos/{id}` only updates fields present in the request body.
 
 ---
 
