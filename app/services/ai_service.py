@@ -1,5 +1,5 @@
 import json
-import google.generativeai as genai
+from groq import Groq, AuthenticationError, RateLimitError, APIError
 
 from app.core.config import settings
 from app.core.errors import AIServiceError
@@ -10,32 +10,48 @@ from app.schemas.ai import (
 )
 
 
-def _get_model() -> genai.GenerativeModel:
-    genai.configure(api_key=settings.GEMINI_API_KEY)
-    return genai.GenerativeModel(
-        model_name=settings.GEMINI_MODEL,
-        generation_config=genai.GenerationConfig(temperature=0.4),
-    )
+def _get_client() -> Groq:
+    return Groq(api_key=settings.GROQ_API_KEY)
 
 
-def _call_gemini(system: str, user: str) -> str:
+def _call_groq(system: str, user: str, max_tokens: int = 1024) -> str:
     try:
-        model = _get_model()
-        # Gemini uses a combined prompt — prepend system instructions to user message
-        full_prompt = f"{system}\n\n{user}"
-        response = model.generate_content(full_prompt)
-        return response.text
-    except Exception as e:
-        err = str(e).lower()
-        if "api_key" in err or "invalid" in err or "permission" in err:
-            raise AIServiceError(
-                "Invalid Gemini API key. Check GEMINI_API_KEY in your environment."
-            )
-        if "quota" in err or "rate" in err or "429" in err:
-            raise AIServiceError(
-                "Gemini API rate limit reached. Please try again shortly."
-            )
-        raise AIServiceError(f"Gemini API error: {str(e)}")
+        client = _get_client()
+        response = client.chat.completions.create(
+            model=settings.GROQ_MODEL,
+            max_tokens=max_tokens,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0.4,
+        )
+        return response.choices[0].message.content
+    except AuthenticationError:
+        raise AIServiceError(
+            "Invalid Groq API key. Check GROQ_API_KEY in your environment."
+        )
+    except RateLimitError:
+        raise AIServiceError(
+            "Groq API rate limit reached. Please try again shortly."
+        )
+    except APIError as e:
+        raise AIServiceError(f"Groq API error: {str(e)}")
+
+
+def _parse_json(raw: str, context: str) -> dict:
+    """Strip markdown fences and parse JSON safely."""
+    cleaned = (
+        raw.strip()
+        .removeprefix("```json")
+        .removeprefix("```")
+        .removesuffix("```")
+        .strip()
+    )
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        raise AIServiceError(f"Could not parse AI response for {context}: {str(e)}")
 
 
 def breakdown_goal(goal: str, max_tasks: int) -> TaskBreakdownResponse:
@@ -48,24 +64,23 @@ def breakdown_goal(goal: str, max_tasks: int) -> TaskBreakdownResponse:
     )
     user = f"Break down this goal into at most {max_tasks} clear tasks:\n\nGoal: {goal}"
 
-    raw = _call_gemini(system, user)
-
-    # Strip markdown code fences Gemini sometimes adds despite instructions
-    raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    raw = _call_groq(system, user, max_tokens=1200)
+    data = _parse_json(raw, "task breakdown")
 
     try:
-        data = json.loads(raw)
         tasks = [GeneratedTask(**t) for t in data.get("tasks", [])]
     except Exception as e:
-        raise AIServiceError(f"Could not parse AI response into tasks: {str(e)}")
+        raise AIServiceError(f"Invalid task structure in AI response: {str(e)}")
 
     return TaskBreakdownResponse(goal=goal, tasks=tasks)
 
 
-def suggest_priority(title: str, description: str | None, due_date: str | None) -> PrioritySuggestResponse:
+def suggest_priority(
+    title: str, description: str | None, due_date: str | None
+) -> PrioritySuggestResponse:
     system = (
         "You are a productivity assistant. Analyze a todo task and suggest the best priority level. "
-        'Respond ONLY with valid JSON (no markdown): {"priority": "low|medium|high", "reasoning": "one sentence"}.'
+        'Respond ONLY with valid JSON, no markdown: {"priority": "low|medium|high", "reasoning": "one sentence"}.'
     )
     parts = [f"Title: {title}"]
     if description:
@@ -73,14 +88,13 @@ def suggest_priority(title: str, description: str | None, due_date: str | None) 
     if due_date:
         parts.append(f"Due date: {due_date}")
 
-    raw = _call_gemini(system, "\n".join(parts))
-    raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    raw = _call_groq(system, "\n".join(parts), max_tokens=300)
+    data = _parse_json(raw, "priority suggestion")
 
     try:
-        data = json.loads(raw)
         return PrioritySuggestResponse(
             suggested_priority=data["priority"],
             reasoning=data["reasoning"],
         )
-    except (json.JSONDecodeError, KeyError) as e:
-        raise AIServiceError(f"Could not parse priority suggestion: {str(e)}")
+    except KeyError as e:
+        raise AIServiceError(f"Missing field in priority response: {str(e)}")
