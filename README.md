@@ -8,7 +8,7 @@ A production-grade REST API for todo management built with **FastAPI** and **Pos
 
 ## Features
 
-### Core (assignment requirements)
+### Core 
 - Full CRUD with all required fields (id, title, description, due_date, priority, is_completed, tags, created_at, updated_at)
 - Filter by status (`all` / `completed` / `pending`) and priority
 - Full-text search across title and description (`?search=meeting`)
@@ -19,7 +19,7 @@ A production-grade REST API for todo management built with **FastAPI** and **Pos
 - Pydantic v2 validation — no raw stack traces in responses
 - 25+ pytest tests
 
-### AI Upgrades (Groq — FREE tier)
+### AI Upgrades 
 
 | Endpoint | What it does |
 |---|---|
