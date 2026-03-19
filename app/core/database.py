@@ -1,11 +1,11 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 from app.core.config import settings
 
 engine = create_engine(
     settings.DATABASE_URL,
-    pool_pre_ping=True,   # drops stale connections before use (important on Render)
+    pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,
 )
@@ -16,7 +16,19 @@ Base = declarative_base()
 
 
 def create_tables():
-    from app.models import todo  # noqa: F401 — registers ORM models with Base
+    """Create enum type and all tables safely — idempotent, safe to call multiple times."""
+    with engine.connect() as conn:
+        # Create priority enum only if it doesn't exist
+        exists = conn.execute(text(
+            "SELECT 1 FROM pg_type WHERE typname = 'priority'"
+        )).fetchone()
+        if not exists:
+            conn.execute(text(
+                "CREATE TYPE priority AS ENUM ('low', 'medium', 'high')"
+            ))
+        conn.commit()
+
+    # create_all is fully idempotent — skips tables that already exist
     Base.metadata.create_all(bind=engine)
 
 
