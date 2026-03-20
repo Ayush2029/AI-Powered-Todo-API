@@ -7,17 +7,13 @@ Create Date: 2025-03-19
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSON
-
 revision = "0001_initial"
 down_revision = None
 branch_labels = None
 depends_on = None
 
-
 def upgrade() -> None:
     conn = op.get_bind()
-
-    # Check if priority enum exists before creating
     result = conn.execute(sa.text(
         "SELECT 1 FROM pg_type WHERE typname = 'priority'"
     ))
@@ -25,8 +21,6 @@ def upgrade() -> None:
         conn.execute(sa.text(
             "CREATE TYPE priority AS ENUM ('low', 'medium', 'high')"
         ))
-
-    # Check if todos table exists before creating
     result = conn.execute(sa.text(
         "SELECT 1 FROM information_schema.tables WHERE table_name = 'todos'"
     ))
@@ -48,7 +42,6 @@ def upgrade() -> None:
             sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
             sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
         )
-
 
 def downgrade() -> None:
     op.drop_table("todos")
