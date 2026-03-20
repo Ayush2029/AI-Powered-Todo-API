@@ -2,19 +2,15 @@ from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from typing import Optional
-
 from app.core.database import get_db
 from app.schemas.todo import TodoCreate, TodoUpdate, TodoResponse, TodoListResponse
 from app.services import todo_service
-
 router = APIRouter()
-
 
 @router.post("/", response_model=TodoResponse, status_code=status.HTTP_201_CREATED, summary="Create a todo")
 def create_todo(payload: TodoCreate, db: Session = Depends(get_db)):
     """Create a new todo item. Title is required and must be non-empty."""
     return todo_service.create_todo(db, payload)
-
 
 @router.get("/", response_model=TodoListResponse, summary="List todos with filters")
 def list_todos(
@@ -50,12 +46,10 @@ def list_todos(
         tag=tag,
     )
 
-
 @router.get("/{todo_id}", response_model=TodoResponse, summary="Get a todo by ID")
 def get_todo(todo_id: int, db: Session = Depends(get_db)):
     """Retrieve a single todo by its ID. Returns 404 if not found."""
     return todo_service.get_todo(db, todo_id)
-
 
 @router.put("/{todo_id}", response_model=TodoResponse, summary="Update a todo (partial or full)")
 def update_todo(todo_id: int, payload: TodoUpdate, db: Session = Depends(get_db)):
@@ -64,7 +58,6 @@ def update_todo(todo_id: int, payload: TodoUpdate, db: Session = Depends(get_db)
     This means both partial (PATCH-style) and full updates are supported via PUT.
     """
     return todo_service.update_todo(db, todo_id, payload)
-
 
 @router.delete("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a todo")
 def delete_todo(todo_id: int, db: Session = Depends(get_db)):
