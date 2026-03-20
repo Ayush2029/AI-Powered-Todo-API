@@ -2,11 +2,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 from typing import Optional
 import math
-
 from app.models.todo import Todo, Priority
 from app.schemas.todo import TodoCreate, TodoUpdate
 from app.core.errors import NotFoundError
-
 
 def create_todo(db: Session, payload: TodoCreate) -> Todo:
     todo = Todo(
@@ -21,13 +19,11 @@ def create_todo(db: Session, payload: TodoCreate) -> Todo:
     db.refresh(todo)
     return todo
 
-
 def get_todo(db: Session, todo_id: int) -> Todo:
     todo = db.query(Todo).filter(Todo.id == todo_id).first()
     if not todo:
         raise NotFoundError("Todo", todo_id)
     return todo
-
 
 def list_todos(
     db: Session,
@@ -42,17 +38,14 @@ def list_todos(
 ) -> dict:
     query = db.query(Todo)
 
-    # Filter by status
     if status == "completed":
-        query = query.filter(Todo.is_completed == True)  # noqa: E712
+        query = query.filter(Todo.is_completed == True)  
     elif status == "pending":
-        query = query.filter(Todo.is_completed == False)  # noqa: E712
+        query = query.filter(Todo.is_completed == False) 
 
-    # Filter by priority
     if priority:
         query = query.filter(Todo.priority == Priority(priority))
 
-    # Search in title and description
     if search:
         pattern = f"%{search}%"
         query = query.filter(
@@ -62,25 +55,18 @@ def list_todos(
             )
         )
 
-    # Total count before pagination
     total = query.count()
-
-    # Sorting
     sort_column = getattr(Todo, sort_by, Todo.created_at)
     if sort_order == "asc":
         query = query.order_by(sort_column.asc())
     else:
         query = query.order_by(sort_column.desc())
-
-    # Pagination
     offset = (page - 1) * page_size
     items = query.offset(offset).limit(page_size).all()
 
-    # Filter by tag (in-memory since JSON column varies by DB)
     if tag:
         items = [t for t in items if t.tags and tag.lower() in [x.lower() for x in t.tags]]
         total = len(items)
-
     return {
         "items": items,
         "total": total,
@@ -88,8 +74,7 @@ def list_todos(
         "page_size": page_size,
         "total_pages": max(1, math.ceil(total / page_size)),
     }
-
-
+    
 def update_todo(db: Session, todo_id: int, payload: TodoUpdate) -> Todo:
     todo = get_todo(db, todo_id)
     update_data = payload.model_dump(exclude_unset=True)
@@ -100,7 +85,6 @@ def update_todo(db: Session, todo_id: int, payload: TodoUpdate) -> Todo:
     db.commit()
     db.refresh(todo)
     return todo
-
 
 def delete_todo(db: Session, todo_id: int) -> None:
     todo = get_todo(db, todo_id)
