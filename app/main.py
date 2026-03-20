@@ -1,18 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-
 from app.core.database import create_tables
 from app.routes import todos, ai
 from app.core.errors import register_exception_handlers
-import app.models.todo  # noqa: F401 — registers model with Base
-
+import app.models.todo  
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_tables()
     yield
-
 
 app = FastAPI(
     title="AI-Powered Todo API",
@@ -23,7 +20,6 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -31,13 +27,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 register_exception_handlers(app)
-
 app.include_router(todos.router, prefix="/todos", tags=["Todos"])
 app.include_router(ai.router, prefix="/ai", tags=["AI Features"])
-
-
 @app.get("/", tags=["Health"])
 def root():
     return {
@@ -45,7 +37,6 @@ def root():
         "message": "AI-Powered Todo API is running.",
         "docs": "/docs",
     }
-
 
 @app.get("/health", tags=["Health"])
 def health():
