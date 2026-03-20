@@ -2,19 +2,15 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
-
-
 class NotFoundError(Exception):
     def __init__(self, resource: str, id: int | str):
         self.message = f"{resource} with id '{id}' not found."
         super().__init__(self.message)
 
-
 class AIServiceError(Exception):
     def __init__(self, detail: str = "AI service request failed."):
         self.message = detail
         super().__init__(self.message)
-
 
 def register_exception_handlers(app: FastAPI) -> None:
 
