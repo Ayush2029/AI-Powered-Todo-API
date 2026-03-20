@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-
 from app.core.database import get_db
 from app.schemas.ai import (
     TaskBreakdownRequest,
@@ -9,10 +8,7 @@ from app.schemas.ai import (
     PrioritySuggestResponse,
 )
 from app.services import ai_service
-
 router = APIRouter()
-
-
 @router.post(
     "/breakdown",
     response_model=TaskBreakdownResponse,
@@ -26,7 +22,6 @@ def breakdown_goal(payload: TaskBreakdownRequest):
     Example goal: *"Launch a personal portfolio website by end of month"*
     """
     return ai_service.breakdown_goal(payload.goal, payload.max_tasks)
-
 
 @router.post(
     "/suggest-priority",
