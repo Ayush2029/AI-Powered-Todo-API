@@ -1,6 +1,5 @@
 import json
 from groq import Groq, AuthenticationError, RateLimitError, APIError
-
 from app.core.config import settings
 from app.core.errors import AIServiceError
 from app.schemas.ai import (
@@ -9,10 +8,8 @@ from app.schemas.ai import (
     PrioritySuggestResponse,
 )
 
-
 def _get_client() -> Groq:
     return Groq(api_key=settings.GROQ_API_KEY)
-
 
 def _call_groq(system: str, user: str, max_tokens: int = 1024) -> str:
     try:
@@ -38,7 +35,6 @@ def _call_groq(system: str, user: str, max_tokens: int = 1024) -> str:
     except APIError as e:
         raise AIServiceError(f"Groq API error: {str(e)}")
 
-
 def _parse_json(raw: str, context: str) -> dict:
     """Strip markdown fences and parse JSON safely."""
     cleaned = (
@@ -53,7 +49,6 @@ def _parse_json(raw: str, context: str) -> dict:
     except json.JSONDecodeError as e:
         raise AIServiceError(f"Could not parse AI response for {context}: {str(e)}")
 
-
 def breakdown_goal(goal: str, max_tasks: int) -> TaskBreakdownResponse:
     system = (
         "You are a productivity assistant. Break down a user's high-level goal into concrete, "
@@ -63,17 +58,13 @@ def breakdown_goal(goal: str, max_tasks: int) -> TaskBreakdownResponse:
         "tags (array of strings)."
     )
     user = f"Break down this goal into at most {max_tasks} clear tasks:\n\nGoal: {goal}"
-
     raw = _call_groq(system, user, max_tokens=1200)
     data = _parse_json(raw, "task breakdown")
-
     try:
         tasks = [GeneratedTask(**t) for t in data.get("tasks", [])]
     except Exception as e:
         raise AIServiceError(f"Invalid task structure in AI response: {str(e)}")
-
     return TaskBreakdownResponse(goal=goal, tasks=tasks)
-
 
 def suggest_priority(
     title: str, description: str | None, due_date: str | None
@@ -87,10 +78,8 @@ def suggest_priority(
         parts.append(f"Description: {description}")
     if due_date:
         parts.append(f"Due date: {due_date}")
-
     raw = _call_groq(system, "\n".join(parts), max_tokens=300)
     data = _parse_json(raw, "priority suggestion")
-
     try:
         return PrioritySuggestResponse(
             suggested_priority=data["priority"],
